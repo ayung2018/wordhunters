@@ -1,0 +1,1297 @@
+// Word Hunters — plain JS game (no compressed bootstrap)
+// Rebuilt so the game loads without DecompressionStream / gzip payloads.
+"use strict";
+
+(function () {
+  const $ = (id) => document.getElementById(id);
+
+  // ---------- Villain art loader ----------
+  const POKE_IDS = {
+    arceus: 493, mewtwo: 150, giratina: 487, dialga: 483, palkia: 484,
+    rayquaza: 384, eternatus: 890, necrozma: 800, "ultra-necrozma": 10157,
+    groudon: 383, kyogre: 382,
+    pikachu: 25, pika: 25, eevee: 133, charmander: 4, squirtle: 7,
+    bulbasaur: 1, jigglypuff: 39, snorlax: 143, psyduck: 54, sylveon: 700,
+    lucario: 448, charizard: 6, gengar: 94, lapras: 131, mew: 151,
+    meowth: 52, pichu: 172, espeon: 196, umbreon: 197,
+  };
+  const EMBEDDED_IMAGES = window.EMBEDDED_IMAGES || {};
+  const CDN =
+    "https://raw.githubusercontent.com/PokeAPI/sprites/master/sprites/pokemon/other/official-artwork/";
+
+  function artCandidates(slug) {
+    if (!slug) return [];
+    const out = [];
+    // Prefer local PNGs first (bundled offline art)
+    out.push("images/" + slug + ".png");
+    if (slug === "pika" || slug === "pikachu") {
+      out.push("images/pikachu.png", "images/pika.png");
+    }
+    if (slug === "trainer") {
+      out.push("images/trainer.png", "images/trainer_red.png", "images/trainer_ash.png");
+    }
+    if (slug === "trainer_ash") {
+      out.push("images/trainer_ash.png", "images/trainer.png");
+    }
+    if (slug === "ash") {
+      out.push("images/trainer_ash.png", "images/trainer.png");
+    }
+    if (EMBEDDED_IMAGES[slug]) out.push(EMBEDDED_IMAGES[slug]);
+    // CDN fallback for Pokémon species (official artwork)
+    if (POKE_IDS[slug] != null) out.push(CDN + POKE_IDS[slug] + ".png");
+    return out;
+  }
+
+  function img(slug, name) {
+    const candidates = artCandidates(slug);
+    return { slug, name: name || slug || "character", src: candidates[0] || null, candidates };
+  }
+
+  /** Load character photo only — never show emoji faces */
+  function setImgEl(el, a) {
+    if (!el) return;
+    el.classList.add("has-photo");
+    el.innerHTML = "";
+    if (!a) {
+      el.classList.add("photo-missing");
+      return;
+    }
+    const list = (a.candidates || (a.src ? [a.src] : [])).filter(Boolean);
+    let i = 0;
+    // soft gradient placeholder while loading (no emoji)
+    el.classList.add("photo-loading");
+    function tryNext() {
+      if (i >= list.length) {
+        el.classList.remove("photo-loading");
+        el.classList.add("photo-missing");
+        el.title = a.name || a.slug || "";
+        return;
+      }
+      const src = list[i++];
+      const im = new Image();
+      im.alt = a.name || a.slug || "character";
+      im.draggable = false;
+      im.onload = () => {
+        el.classList.remove("photo-loading", "photo-missing");
+        el.innerHTML = "";
+        im.className = "char-photo";
+        el.appendChild(im);
+      };
+      im.onerror = tryNext;
+      im.src = src;
+    }
+    tryNext();
+  }
+
+  // ---------- Characters ----------
+  const HEROES = [
+    { id: "rumi", name: "Rumi", emoji: "💜", role: "HUNTR/X", world: "demon", slug: "rumi", color: "#c084fc" },
+    { id: "mira", name: "Mira", emoji: "💗", role: "HUNTR/X", world: "demon", slug: "mira", color: "#f472b6" },
+    { id: "zoey", name: "Zoey", emoji: "💙", role: "HUNTR/X", world: "demon", slug: "zoey", color: "#60a5fa" },
+    { id: "celine", name: "Celine", emoji: "🌙", role: "Helper", world: "demon", slug: "celine", color: "#a78bfa" },
+    { id: "bobby", name: "Bobby", emoji: "🎧", role: "Helper", world: "demon", slug: "bobby", color: "#34d399" },
+    { id: "han", name: "Healer Han", emoji: "🩺", role: "Helper", world: "demon", slug: "han", color: "#67e8f9" },
+    { id: "jinu", name: "Jinu", emoji: "🦊", role: "Saja Boys", world: "demon", slug: "jinu", color: "#a78bfa" },
+    { id: "baby", name: "Baby Saja", emoji: "🍼", role: "Saja Boys", world: "demon", slug: "baby", color: "#f9a8d4" },
+    { id: "romance", name: "Romance", emoji: "💕", role: "Saja Boys", world: "demon", slug: "romance", color: "#fb7185" },
+    { id: "abby", name: "Abby Saja", emoji: "😎", role: "Saja Boys", world: "demon", slug: "abby", color: "#38bdf8" },
+    { id: "mystery", name: "Mystery", emoji: "🎭", role: "Saja Boys", world: "demon", slug: "mystery", color: "#c4b5fd" },
+    { id: "gwima", name: "Gwi-Ma", emoji: "😈", role: "Demon", world: "demon", slug: "gwima", color: "#f87171" },
+    { id: "derpy", name: "Derpy", emoji: "🐯", role: "Pet", world: "demon", slug: "derpy", color: "#fde047" },
+    { id: "sussie", name: "Sussie", emoji: "🐦", role: "Pet", world: "demon", slug: "sussie", color: "#86efac" },
+    { id: "trainer", name: "Red", emoji: "🧢", role: "Trainer", world: "poke", slug: "trainer", color: "#ef4444" },
+    { id: "ash", name: "Ash", emoji: "🧢", role: "Trainer", world: "poke", slug: "trainer_ash", color: "#3b82f6" },
+    { id: "may", name: "May", emoji: "🎀", role: "Trainer", world: "poke", slug: "trainer_may", color: "#f472b6" },
+    { id: "serena", name: "Serena", emoji: "🎀", role: "Trainer", world: "poke", slug: "trainer_serena", color: "#f9a8d4" },
+    { id: "dawn", name: "Dawn", emoji: "❄️", role: "Trainer", world: "poke", slug: "trainer_dawn", color: "#93c5fd" },
+    { id: "hilda", name: "Hilda", emoji: "⭐", role: "Trainer", world: "poke", slug: "trainer_hilda", color: "#fb7185" },
+    { id: "gloria", name: "Gloria", emoji: "🎩", role: "Trainer", world: "poke", slug: "trainer_gloria", color: "#a3e635" },
+    { id: "brendan", name: "Brendan", emoji: "🧢", role: "Trainer", world: "poke", slug: "trainer_brendan", color: "#38bdf8" },
+    { id: "victor", name: "Victor", emoji: "🧢", role: "Trainer", world: "poke", slug: "trainer_victor", color: "#fbbf24" },
+    { id: "pikachu", name: "Pikachu", emoji: "⚡", role: "Buddy", world: "poke", slug: "pikachu", color: "#facc15" },
+    { id: "eevee", name: "Eevee", emoji: "🦊", role: "Buddy", world: "poke", slug: "eevee", color: "#d6b28c" },
+    { id: "charmander", name: "Charmander", emoji: "🔥", role: "Buddy", world: "poke", slug: "charmander", color: "#fb923c" },
+    { id: "squirtle", name: "Squirtle", emoji: "💧", role: "Buddy", world: "poke", slug: "squirtle", color: "#38bdf8" },
+    { id: "bulbasaur", name: "Bulbasaur", emoji: "🌱", role: "Buddy", world: "poke", slug: "bulbasaur", color: "#4ade80" },
+    { id: "jigglypuff", name: "Jigglypuff", emoji: "🎤", role: "Buddy", world: "poke", slug: "jigglypuff", color: "#f9a8d4" },
+    { id: "snorlax", name: "Snorlax", emoji: "😴", role: "Buddy", world: "poke", slug: "snorlax", color: "#67e8f9" },
+    { id: "psyduck", name: "Psyduck", emoji: "🦆", role: "Buddy", world: "poke", slug: "psyduck", color: "#fde047" },
+    { id: "sylveon", name: "Sylveon", emoji: "🎀", role: "Buddy", world: "poke", slug: "sylveon", color: "#fda4af" },
+    { id: "lucario", name: "Lucario", emoji: "🥋", role: "Buddy", world: "poke", slug: "lucario", color: "#60a5fa" },
+    { id: "mew", name: "Mew", emoji: "✨", role: "Buddy", world: "poke", slug: "mew", color: "#f0abfc" },
+    { id: "lapras", name: "Lapras", emoji: "🌊", role: "Buddy", world: "poke", slug: "lapras", color: "#7dd3fc" },
+    { id: "pichu", name: "Pichu", emoji: "⚡", role: "Buddy", world: "poke", slug: "pichu", color: "#fef08a" },
+  ];
+
+  const DEMON_VILLAINS = [
+    { id: "gwima", name: "Gwi-Ma", emoji: "😈", slug: "gwima" },
+    { id: "jinu", name: "Jinu", emoji: "🦊", slug: "jinu" },
+    { id: "baby", name: "Baby Saja", emoji: "🍼", slug: "baby" },
+    { id: "romance", name: "Romance", emoji: "💕", slug: "romance" },
+    { id: "abby", name: "Abby Saja", emoji: "😎", slug: "abby" },
+    { id: "mystery", name: "Mystery", emoji: "🎭", slug: "mystery" },
+    { id: "saja", name: "Saja Boys", emoji: "🕶️", slug: "saja" },
+  ];
+
+  const POKE_VILLAINS = [
+    { id: "arceus", name: "Arceus", emoji: "✨", slug: "arceus" },
+    { id: "mewtwo", name: "Mewtwo", emoji: "🧬", slug: "mewtwo" },
+    { id: "giratina", name: "Giratina", emoji: "👻", slug: "giratina" },
+    { id: "dialga", name: "Dialga", emoji: "⏱️", slug: "dialga" },
+    { id: "palkia", name: "Palkia", emoji: "🌌", slug: "palkia" },
+    { id: "rayquaza", name: "Rayquaza", emoji: "🐉", slug: "rayquaza" },
+    { id: "eternatus", name: "Eternatus", emoji: "☢️", slug: "eternatus" },
+    { id: "ultra-necrozma", name: "Ultra Necrozma", emoji: "💡", slug: "ultra-necrozma" },
+    { id: "groudon", name: "Groudon", emoji: "🌋", slug: "groudon" },
+    { id: "kyogre", name: "Kyogre", emoji: "🌊", slug: "kyogre" },
+  ];
+
+  const DIFF = [
+    {
+      lives: 8,
+      freeFirst: true,
+      voiceHint: true,
+      letterHints: 3,
+      help: "Easy: free first letter, voice says the clue, more hearts & hints",
+    },
+    {
+      lives: 6,
+      freeFirst: false,
+      voiceHint: true,
+      letterHints: 2,
+      help: "Medium: clue + emoji, 2 letter-hints",
+    },
+    {
+      lives: 6,
+      freeFirst: false,
+      voiceHint: false,
+      letterHints: 1,
+      help: "Hard: clue/emoji only via 💡, 1 letter-hint",
+    },
+  ];
+
+  const SAMPLE_WORDS = [
+    "CAT - a soft pet",
+    "HAPPY - a big smile feeling",
+    "FRIEND - someone you love",
+    "SCHOOL - where we learn",
+    "RAINBOW - colors in the sky",
+    "APPLE - a crunchy fruit",
+    "MUSIC - songs and sounds",
+    "BRAVE - not afraid",
+    "SMILE - turn your mouth up",
+    "STAR - twinkles at night",
+  ];
+
+  const THEME_WORDS = {
+    demon: [
+      { word: "RUMI", clue: "Purple HUNTR/X hero", emoji: "💜", tier: 0 },
+      { word: "MIRA", clue: "Pink HUNTR/X hero", emoji: "💗", tier: 0 },
+      { word: "ZOEY", clue: "Blue HUNTR/X hero", emoji: "💙", tier: 0 },
+      { word: "SONG", clue: "Music that saves the stage", emoji: "🎤", tier: 0 },
+      { word: "STAGE", clue: "Where the concert happens", emoji: "🎭", tier: 1 },
+      { word: "DEMON", clue: "Sneaky stage villains", emoji: "😈", tier: 1 },
+      { word: "HUNTER", clue: "Someone who protects the world", emoji: "🛡️", tier: 1 },
+      { word: "FRIENDSHIP", clue: "Power that binds the team", emoji: "🤝", tier: 2 },
+      { word: "HARMONY", clue: "When voices blend as one", emoji: "🎶", tier: 2 },
+      { word: "BRAVERY", clue: "Courage on stage", emoji: "⭐", tier: 2 },
+    ],
+    poke: [
+      { word: "PIKA", clue: "Short name for a yellow buddy", emoji: "⚡", tier: 0 },
+      { word: "BALL", clue: "Catch creatures in this", emoji: "🔴", tier: 0 },
+      { word: "TRAINER", clue: "Person who raises Pokémon", emoji: "🧢", tier: 1 },
+      { word: "MEWTWO", clue: "Powerful psychic legendary", emoji: "🧬", tier: 1 },
+      { word: "ARCEUS", clue: "Mythical creator Pokémon", emoji: "✨", tier: 2 },
+      { word: "RAYQUAZA", clue: "Sky serpent legend", emoji: "🐉", tier: 2 },
+      { word: "LEGEND", clue: "Famous rare creature", emoji: "🌟", tier: 1 },
+      { word: "BATTLE", clue: "A Pokémon fight", emoji: "⚔️", tier: 1 },
+      { word: "CATCH", clue: "What trainers try to do", emoji: "🎯", tier: 0 },
+      { word: "GROUDON", clue: "Land legendary", emoji: "🌋", tier: 2 },
+    ],
+    mix: [
+      { word: "MUSIC", clue: "Songs and beats", emoji: "🎵", tier: 0 },
+      { word: "HERO", clue: "Someone brave who helps", emoji: "🦸", tier: 0 },
+      { word: "QUEST", clue: "An adventure to complete", emoji: "🗺️", tier: 1 },
+      { word: "POWER", clue: "Strength to win", emoji: "💪", tier: 1 },
+      { word: "SPARKLE", clue: "Shiny happy light", emoji: "✨", tier: 1 },
+      { word: "LEGENDARY", clue: "Super rare and famous", emoji: "👑", tier: 2 },
+    ],
+  };
+
+  // ---------- State ----------
+  const defaultHero = HEROES.find((h) => h.id === "rumi") || HEROES[0];
+  const state = {
+    world: "demon",
+    hero: defaultHero,
+    difficulty: 0,
+    sound: true,
+    voice: true,
+    lessonMode: "custom", // custom | theme
+    customWords: [],
+    lessonQueue: [],
+    lessonIndex: 0,
+    lessonResults: [],
+    word: null,
+    guessed: new Set(),
+    wrong: 0,
+    lives: 8,
+    hintsLeft: 3,
+    over: false,
+    collection: loadCollection(),
+  };
+
+  function loadCollection() {
+    try {
+      return JSON.parse(localStorage.getItem("wh_collection") || "[]");
+    } catch {
+      return [];
+    }
+  }
+  function saveCollection() {
+    try {
+      localStorage.setItem("wh_collection", JSON.stringify(state.collection.slice(-24)));
+    } catch {
+      /* ignore */
+    }
+  }
+
+  // ---------- Audio / voice ----------
+  let audioCtx = null;
+  function ensureAudio() {
+    if (!audioCtx) {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (AC) audioCtx = new AC();
+    }
+    if (audioCtx && audioCtx.state === "suspended") audioCtx.resume();
+    return audioCtx;
+  }
+
+  function sfx(kind) {
+    if (!state.sound) return;
+    const ctx = ensureAudio();
+    if (!ctx) return;
+    const o = ctx.createOscillator();
+    const g = ctx.createGain();
+    o.connect(g);
+    g.connect(ctx.destination);
+    const now = ctx.currentTime;
+    if (kind === "correct") {
+      o.type = "triangle";
+      o.frequency.setValueAtTime(520, now);
+      o.frequency.exponentialRampToValueAtTime(880, now + 0.12);
+      g.gain.setValueAtTime(0.12, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      o.start(now);
+      o.stop(now + 0.22);
+    } else if (kind === "wrong") {
+      o.type = "sawtooth";
+      o.frequency.setValueAtTime(180, now);
+      o.frequency.exponentialRampToValueAtTime(90, now + 0.18);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
+      o.start(now);
+      o.stop(now + 0.22);
+    } else if (kind === "win") {
+      [523, 659, 784, 1046].forEach((f, i) => {
+        const o2 = ctx.createOscillator();
+        const g2 = ctx.createGain();
+        o2.type = "triangle";
+        o2.connect(g2);
+        g2.connect(ctx.destination);
+        const t = now + i * 0.1;
+        o2.frequency.setValueAtTime(f, t);
+        g2.gain.setValueAtTime(0.1, t);
+        g2.gain.exponentialRampToValueAtTime(0.001, t + 0.25);
+        o2.start(t);
+        o2.stop(t + 0.28);
+      });
+    } else {
+      // pop
+      o.type = "sine";
+      o.frequency.setValueAtTime(440, now);
+      o.frequency.exponentialRampToValueAtTime(660, now + 0.06);
+      g.gain.setValueAtTime(0.08, now);
+      g.gain.exponentialRampToValueAtTime(0.001, now + 0.1);
+      o.start(now);
+      o.stop(now + 0.12);
+    }
+  }
+
+  let speakChain = Promise.resolve();
+
+  function speak(text, opts) {
+    opts = opts || {};
+    if (!state.voice || !text || !window.speechSynthesis) return Promise.resolve();
+    const say = () =>
+      new Promise((resolve) => {
+        try {
+          if (opts.interrupt !== false && opts.interrupt !== undefined ? opts.interrupt : !opts.append) {
+            if (!opts.append) window.speechSynthesis.cancel();
+          }
+          const u = new SpeechSynthesisUtterance(String(text));
+          u.rate = opts.rate != null ? opts.rate : 0.95;
+          u.pitch = opts.pitch != null ? opts.pitch : 1.05;
+          u.onend = () => resolve();
+          u.onerror = () => resolve();
+          window.speechSynthesis.speak(u);
+        } catch {
+          resolve();
+        }
+      });
+    if (opts.append) {
+      speakChain = speakChain.then(say);
+      return speakChain;
+    }
+    window.speechSynthesis.cancel();
+    speakChain = say();
+    return speakChain;
+  }
+
+  function speakLater(text, delayMs) {
+    return new Promise((resolve) => {
+      setTimeout(() => {
+        speak(text, { append: true }).then(resolve);
+      }, delayMs || 0);
+    });
+  }
+
+  // ---------- FX ----------
+  function spawnFX() {
+    const layer = $("fx");
+    if (!layer) return;
+    const colors = ["#ff4fd8", "#3de7ff", "#ffd84d", "#7dff8a", "#a78bfa", "#ff6b6b"];
+    for (let i = 0; i < 18; i++) {
+      const s = document.createElement("span");
+      s.className = "spark spark-dot";
+      s.style.left = Math.random() * 100 + "%";
+      s.style.top = Math.random() * 100 + "%";
+      s.style.background = colors[i % colors.length];
+      s.style.setProperty("--dur", 6 + Math.random() * 8 + "s");
+      s.style.setProperty("--delay", Math.random() * 4 + "s");
+      layer.appendChild(s);
+    }
+  }
+
+  // ---------- Screens ----------
+  function showScreen(name) {
+    document.querySelectorAll(".screen").forEach((el) => el.classList.remove("active"));
+    const map = {
+      home: "screen-home",
+      game: "screen-game",
+      result: "screen-result",
+      summary: "screen-summary",
+    };
+    const el = $(map[name] || name);
+    if (el) el.classList.add("active");
+  }
+
+  // ---------- Heroes ----------
+  function heroesForWorld(world) {
+    if (world === "mix") return HEROES.slice();
+    return HEROES.filter((h) => h.world === world || world === "mix");
+  }
+
+  function setHeroById(id) {
+    const h = HEROES.find((x) => x.id === id);
+    if (h) state.hero = h;
+  }
+
+  function renderHeroPicker() {
+    const grid = $("hero-picker");
+    if (!grid) return;
+    const list = heroesForWorld(state.world);
+    grid.innerHTML = list
+      .map(
+        (h) => `
+      <button type="button" class="char-card ${h.id === state.hero.id ? "selected" : ""}"
+        data-id="${h.id}" role="radio" aria-checked="${h.id === state.hero.id}">
+        <div class="face" data-face="${h.id}"></div>
+        <span class="cname">${h.name}</span>
+        <span class="crole">${h.role}</span>
+      </button>`
+      )
+      .join("");
+    grid.querySelectorAll(".char-card").forEach((btn) => {
+      const h = list.find((x) => x.id === btn.dataset.id);
+      if (h) setImgEl(btn.querySelector(".face"), img(h.slug, h.name));
+      btn.addEventListener("click", () => {
+        setHeroById(btn.dataset.id);
+        sfx("pop");
+        renderHeroPicker();
+        // Say the character's name when chosen
+        const hero = state.hero;
+        speak(`${hero.name}! You chose ${hero.name}.`, { interrupt: true });
+      });
+    });
+  }
+
+  function renderShelf() {
+    const shelf = $("shelf");
+    if (!shelf) return;
+    if (!state.collection.length) {
+      shelf.innerHTML = `<p class="line" style="margin:0;font-size:.9rem">Win rounds to fill your shelf!</p>`;
+      return;
+    }
+    shelf.innerHTML = state.collection
+      .slice()
+      .reverse()
+      .map((c) => {
+        const slug = (c.slug || "").replace(/[^a-z0-9_-]/gi, "");
+        const face = slug
+          ? `<span class="badge-face" data-slug="${slug}"></span>`
+          : `<span class="badge-face photo-missing"></span>`;
+        return `
+      <div class="badge" title="${c.word}">
+        ${face}
+        <span>${c.word}</span>
+      </div>`;
+      })
+      .join("");
+    shelf.querySelectorAll(".badge-face[data-slug]").forEach((el) => {
+      setImgEl(el, img(el.dataset.slug, el.dataset.slug));
+    });
+  }
+
+  // ---------- Word list ----------
+  function parseWordLines(text) {
+    if (!text) return [];
+    const out = [];
+    const seen = new Set();
+    String(text)
+      .split(/\r?\n/)
+      .forEach((line) => {
+        line = line.trim();
+        if (!line) return;
+        let word = line;
+        let clue = "";
+        const dash = line.match(/^(.+?)\s+[-–—:]\s+(.+)$/);
+        if (dash) {
+          word = dash[1].trim();
+          clue = dash[2].trim();
+        }
+        word = word.toUpperCase().replace(/[^A-Z' -]/g, "");
+        if (word.length < 2 || word.length > 20) return;
+        const key = word.replace(/\s+/g, " ");
+        if (seen.has(key)) return;
+        seen.add(key);
+        out.push({
+          word: key,
+          clue: clue || "Spell this word!",
+          emoji: "✏️",
+          tier: state.difficulty,
+          theme: "custom",
+          custom: true,
+        });
+      });
+    return out.slice(0, 1000);
+  }
+
+  function wordsToTextarea(words) {
+    return words
+      .map((w) => (w.clue && w.clue !== "Spell this word!" ? `${w.word} - ${w.clue}` : w.word))
+      .join("\n");
+  }
+
+  function applyParsedWords(list, announce) {
+    state.customWords = list;
+    renderWordChips();
+    if (announce) sfx("pop");
+  }
+
+  function renderWordChips() {
+    const count = $("word-count");
+    const chips = $("word-chips");
+    const n = state.customWords.length;
+    if (count) {
+      count.textContent =
+        n === 0
+          ? "0 words ready (aim for 10–20)"
+          : `${n} word${n === 1 ? "" : "s"} ready${n < 10 ? " (aim for 10–20)" : n > 50 ? " (nice long list!)" : ""}`;
+    }
+    if (!chips) return;
+    chips.innerHTML = state.customWords
+      .slice(0, 40)
+      .map(
+        (w) =>
+          `<span class="chip">${w.word}${
+            w.clue && w.clue !== "Spell this word!"
+              ? `<span class="chip-clue"> — ${w.clue}</span>`
+              : ""
+          }</span>`
+      )
+      .join("");
+    if (state.customWords.length > 40) {
+      chips.innerHTML += `<span class="chip">+${state.customWords.length - 40} more</span>`;
+    }
+  }
+
+  function setLessonMode(mode) {
+    state.lessonMode = mode;
+    const customBtn = $("mode-custom");
+    const themeBtn = $("mode-theme");
+    const panel = $("custom-words-panel");
+    const note = $("theme-mode-note");
+    if (customBtn) {
+      customBtn.classList.toggle("on", mode === "custom");
+      customBtn.setAttribute("aria-pressed", mode === "custom");
+    }
+    if (themeBtn) {
+      themeBtn.classList.toggle("on", mode === "theme");
+      themeBtn.setAttribute("aria-pressed", mode === "theme");
+    }
+    if (panel) panel.style.display = mode === "custom" ? "" : "none";
+    if (note) note.style.display = mode === "theme" ? "" : "none";
+  }
+
+  function pickThemeWords() {
+    const world = state.world === "mix" ? "mix" : state.world;
+    let pool = (THEME_WORDS[world] || THEME_WORDS.mix).slice();
+    if (state.world === "mix") {
+      pool = [...THEME_WORDS.demon, ...THEME_WORDS.poke, ...THEME_WORDS.mix];
+    }
+    const tier = state.difficulty;
+    let filtered = pool.filter((w) => w.tier <= tier);
+    if (filtered.length < 6) filtered = pool.slice();
+    // shuffle
+    for (let i = filtered.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [filtered[i], filtered[j]] = [filtered[j], filtered[i]];
+    }
+    return filtered.slice(0, 12).map((w) => ({
+      word: w.word.toUpperCase(),
+      clue: w.clue,
+      emoji: w.emoji || "✏️",
+      tier: w.tier,
+      theme: world,
+      custom: false,
+    }));
+  }
+
+  function beginLesson() {
+    let queue = [];
+    if (state.lessonMode === "custom") {
+      if (!state.customWords.length) {
+        // try parse current textarea
+        const ta = $("word-input");
+        if (ta) applyParsedWords(parseWordLines(ta.value), false);
+      }
+      if (!state.customWords.length) {
+        alert("Add some words first (or tap ✨ Sample list), or switch to Theme Words.");
+        return false;
+      }
+      queue = state.customWords.map((w) => ({ ...w }));
+    } else {
+      queue = pickThemeWords();
+    }
+    state.lessonQueue = queue;
+    state.lessonIndex = 0;
+    state.lessonResults = [];
+    return true;
+  }
+
+  // ---------- Round / hangman ----------
+  function lettersOf(word) {
+    return word.toUpperCase().replace(/[^A-Z]/g, "");
+  }
+
+  function uniqueLetters(word) {
+    return [...new Set(lettersOf(word).split(""))];
+  }
+
+  function pickVillain() {
+    const list =
+      state.world === "poke"
+        ? POKE_VILLAINS
+        : state.world === "mix"
+          ? Math.random() < 0.5
+            ? DEMON_VILLAINS
+            : POKE_VILLAINS
+          : DEMON_VILLAINS;
+    return list[Math.floor(Math.random() * list.length)];
+  }
+
+  function startRound() {
+    if (!state.lessonQueue.length || state.lessonIndex >= state.lessonQueue.length) {
+      showLessonSummary();
+      return;
+    }
+    const entry = state.lessonQueue[state.lessonIndex];
+    const d = DIFF[state.difficulty];
+    state.word = entry;
+    state.guessed = new Set();
+    state.wrong = 0;
+    state.lives = d.lives;
+    state.hintsLeft = d.letterHints;
+    state.over = false;
+    state.villain = pickVillain();
+
+    if (d.freeFirst) {
+      const first = lettersOf(entry.word)[0];
+      if (first) state.guessed.add(first);
+    }
+
+    showScreen("game");
+    updateGameChrome();
+    renderWordRow();
+    renderKeyboard();
+    updateStage();
+    updateHearts();
+
+    // Rich voice intro with character names
+    const hero = state.hero.name;
+    const vill = state.villain.name;
+    const n = state.lessonIndex + 1;
+    const total = state.lessonQueue.length;
+    speak(`${hero} versus ${vill}. Word ${n} of ${total}.`, { interrupt: true });
+    if (d.voiceHint) {
+      speakLater(`Hint: ${entry.clue}`, 200);
+    } else {
+      speakLater("Guess the letters!", 200);
+    }
+  }
+
+  function updateGameChrome() {
+    const banner = $("theme-banner");
+    if (banner) {
+      banner.textContent =
+        state.world === "poke"
+          ? "Poké Quest"
+          : state.world === "mix"
+            ? "Mix World"
+            : "Demon Hunters";
+    }
+    const prog = $("lesson-progress");
+    if (prog) {
+      prog.hidden = false;
+      prog.textContent = `${state.lessonIndex + 1} / ${state.lessonQueue.length}`;
+    }
+    const heroSprite = $("hero-sprite");
+    const heroName = $("hero-name");
+    if (heroName) heroName.textContent = state.hero.name;
+    if (heroSprite) setImgEl(heroSprite, img(state.hero.slug, state.hero.name));
+
+    const villainEl = $("villain");
+    const villainName = $("villain-name");
+    if (villainName) villainName.textContent = state.villain.name;
+    if (villainEl) setImgEl(villainEl, img(state.villain.slug, state.villain.name));
+
+    const stage = $("stage");
+    if (stage) {
+      stage.classList.toggle("demon", state.world !== "poke");
+      stage.classList.toggle("poke", state.world === "poke");
+    }
+    const ball = $("pokeball");
+    if (ball) ball.hidden = state.world !== "poke";
+
+    const hintPic = $("hint-pic");
+    const hintClue = $("hint-clue");
+    if (hintClue) hintClue.textContent = state.word.clue || "Guess the word!";
+    if (hintPic) {
+      // Show hero portrait for custom words; villain art for theme rounds
+      const slug = state.word.custom ? state.hero.slug : state.villain.slug;
+      const name = state.word.custom ? state.hero.name : state.villain.name;
+      setImgEl(hintPic, img(slug, name));
+    }
+    const hintBtn = $("btn-hint");
+    if (hintBtn) hintBtn.title = `Hint (${state.hintsLeft} left)`;
+  }
+
+  function updateHearts() {
+    const el = $("hearts");
+    if (!el) return;
+    const max = DIFF[state.difficulty].lives;
+    let html = "";
+    for (let i = 0; i < max; i++) {
+      html += `<span class="heart ${i < state.lives ? "filled" : "empty"}" aria-hidden="true"></span>`;
+    }
+    el.setAttribute("aria-label", `${state.lives} lives remaining`);
+    el.innerHTML = html;
+  }
+
+  function updateStage(opts) {
+    opts = opts || {};
+    const maxWrong = DIFF[state.difficulty].lives;
+    const ratio = Math.min(1, state.wrong / Math.max(1, maxWrong));
+    const meter = $("meter");
+    if (meter) meter.style.width = Math.max(0, (1 - ratio) * 100) + "%";
+
+    // CSS uses --villain-x on .villain-side (left: var(--villain-x))
+    // Walk from far left (~4%) toward the hero on the right (~68%)
+    const pct = 4 + ratio * 64;
+    const wrap = $("villain-wrap");
+    if (wrap) {
+      wrap.style.setProperty("--villain-x", pct + "%");
+      wrap.style.left = pct + "%";
+      if (opts.step) {
+        wrap.classList.remove("villain-step");
+        // reflow to restart CSS animation
+        void wrap.offsetWidth;
+        wrap.classList.add("villain-step");
+      }
+    }
+
+    // Step track dots
+    const track = $("step-track");
+    if (track) {
+      const steps = maxWrong;
+      let html = "";
+      for (let i = 0; i < steps; i++) {
+        const filled = i < state.wrong;
+        const safe = i >= state.wrong;
+        html += `<span class="step-dot ${filled ? "danger" : "safe"}"></span>`;
+      }
+      track.innerHTML = html;
+    }
+
+    const stage = $("stage");
+    if (stage) {
+      stage.classList.toggle("danger", ratio >= 0.5);
+      stage.classList.toggle("danger-close", ratio >= 0.75);
+    }
+    const villain = $("villain");
+    if (villain) {
+      villain.classList.toggle("danger", ratio >= 0.5);
+    }
+    const heroSide = $("hero-wrap");
+    if (heroSide) heroSide.classList.toggle("scared", ratio >= 0.75);
+
+    const vName = state.villain ? state.villain.name : "the villain";
+    const hName = state.hero ? state.hero.name : "you";
+    const caption = $("stage-caption");
+    if (caption) {
+      if (state.over) {
+        caption.textContent =
+          state.lives > 0
+            ? `${hName} saved the stage from ${vName}!`
+            : `${vName} got too close — practice that word!`;
+      } else if (ratio >= 0.75) {
+        caption.textContent = `${vName} is almost at ${hName}! Think carefully!`;
+      } else if (ratio >= 0.4) {
+        caption.textContent = `${vName} is walking closer to ${hName}…`;
+      } else {
+        caption.textContent = `Wrong letter = ${vName} takes one step toward ${hName}!`;
+      }
+    }
+  }
+
+  function renderWordRow() {
+    const row = $("word-row");
+    if (!row || !state.word) return;
+    const w = state.word.word;
+    row.innerHTML = "";
+    for (const ch of w) {
+      const tile = document.createElement("div");
+      if (ch === " ") {
+        tile.className = "tile space";
+        tile.textContent = "";
+      } else if (/[^A-Z]/.test(ch)) {
+        tile.className = "tile revealed";
+        tile.textContent = ch;
+      } else {
+        tile.className = "tile" + (state.guessed.has(ch) ? " revealed" : "");
+        tile.textContent = state.guessed.has(ch) ? ch : "";
+      }
+      row.appendChild(tile);
+    }
+  }
+
+  function buildKeyboard() {
+    renderKeyboard();
+  }
+
+  function renderKeyboard() {
+    const kb = $("keyboard");
+    if (!kb) return;
+    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
+    kb.innerHTML = letters
+      .map((L) => {
+        let cls = "key";
+        if (state.guessed && state.guessed.has(L)) {
+          cls += lettersOf(state.word?.word || "").includes(L) ? " correct" : " wrong";
+        }
+        const disabled = state.guessed && state.guessed.has(L) ? "disabled" : "";
+        return `<button type="button" class="${cls}" data-letter="${L}" ${disabled}>${L}</button>`;
+      })
+      .join("");
+    kb.querySelectorAll(".key").forEach((btn) => {
+      btn.addEventListener("click", () => guess(btn.dataset.letter));
+    });
+  }
+
+  function guess(letter) {
+    if (!letter || state.over || !state.word) return;
+    letter = letter.toUpperCase();
+    if (!/^[A-Z]$/.test(letter)) return;
+    if (state.guessed.has(letter)) return;
+    state.guessed.add(letter);
+
+    const target = lettersOf(state.word.word);
+    const vName = state.villain.name;
+    const hName = state.hero.name;
+    if (target.includes(letter)) {
+      sfx("correct");
+      speak(`Yes! ${letter}!`, { interrupt: true, rate: 1.05 });
+      renderWordRow();
+      renderKeyboard();
+      if (uniqueLetters(state.word.word).every((L) => state.guessed.has(L))) {
+        endRound(true);
+      }
+    } else {
+      sfx("wrong");
+      state.wrong++;
+      state.lives = Math.max(0, state.lives - 1);
+      updateHearts();
+      updateStage({ step: true });
+      renderKeyboard();
+      if (state.lives <= 0) {
+        speak(`${letter} is not in the word. ${vName} reached ${hName}!`, {
+          interrupt: true,
+        });
+        endRound(false);
+      } else {
+        speak(
+          `${letter} is wrong. ${vName} steps closer to ${hName}. ${state.lives} ${
+            state.lives === 1 ? "heart" : "hearts"
+          } left.`,
+          { interrupt: true }
+        );
+      }
+    }
+  }
+
+  function useHint() {
+    if (state.over || !state.word || state.hintsLeft <= 0) {
+      sfx("wrong");
+      return;
+    }
+    const missing = uniqueLetters(state.word.word).filter((L) => !state.guessed.has(L));
+    if (!missing.length) return;
+    const pick = missing[Math.floor(Math.random() * missing.length)];
+    state.hintsLeft--;
+    const hintBtn = $("btn-hint");
+    if (hintBtn) hintBtn.title = `Hint (${state.hintsLeft} left)`;
+    sfx("pop");
+    speak(pick);
+    guess(pick);
+  }
+
+  function endRound(won) {
+    state.over = true;
+    // reveal all
+    uniqueLetters(state.word.word).forEach((L) => state.guessed.add(L));
+    renderWordRow();
+    renderKeyboard();
+    updateStage();
+
+    state.lessonResults.push({
+      word: state.word.word,
+      clue: state.word.clue,
+      emoji: state.word.emoji,
+      won,
+    });
+
+    if (won) {
+      sfx("win");
+      fireConfetti();
+      state.collection.push({
+        word: state.word.word,
+        slug: state.hero.slug,
+        at: Date.now(),
+      });
+      saveCollection();
+    } else {
+      sfx("wrong");
+    }
+
+    const title = $("result-title");
+    const line = $("result-line");
+    const stars = $("result-stars");
+    const wordEl = $("result-word");
+    const pic = $("result-pic");
+    const spell = $("spell-out");
+    const nextBtn = $("btn-next");
+    const hName = state.hero.name;
+    const vName = state.villain.name;
+
+    if (title) title.textContent = won ? `${hName} wins!` : `Learn it, ${hName}!`;
+    if (line) {
+      line.textContent = won
+        ? `Great spelling, ${hName}! You kept ${vName} away.`
+        : `The word was ${state.word.word}. ${vName} got too close — practice below.`;
+    }
+    if (stars) {
+      const max = DIFF[state.difficulty].lives;
+      const left = state.lives;
+      stars.textContent =
+        !won ? "···" : left >= max - 1 ? "★★★" : left >= max / 2 ? "★★☆" : "★☆☆";
+    }
+    if (wordEl) wordEl.textContent = state.word.word;
+    if (pic) {
+      if (won) setImgEl(pic, img(state.hero.slug, state.hero.name));
+      else setImgEl(pic, img(state.villain.slug, state.villain.name));
+    }
+    if (spell) {
+      const letters = lettersOf(state.word.word).split("");
+      spell.innerHTML = letters.map((L) => `<span class="tile revealed">${L}</span>`).join("");
+    }
+    if (nextBtn) {
+      const last = state.lessonIndex + 1 >= state.lessonQueue.length;
+      nextBtn.textContent = last ? "Finish lesson ▶" : "Next word ▶";
+    }
+
+    showScreen("result");
+    if (won) {
+      speak(`You did it, ${hName}! The word is ${state.word.word}.`, {
+        interrupt: true,
+      });
+      speakLater(state.word.word.toLowerCase().split("").join(" "), 400);
+    } else {
+      speak(
+        `Oh no, ${hName}. ${vName} got too close. The word was ${state.word.word}. Let's learn it.`,
+        { interrupt: true }
+      );
+      speakLater(state.word.word.toLowerCase().split("").join(" "), 500);
+    }
+  }
+
+  function goNextLessonWord() {
+    state.lessonIndex++;
+    if (state.lessonIndex >= state.lessonQueue.length) {
+      // custom list clears after lesson ends (README)
+      if (state.lessonMode === "custom") {
+        state.customWords = [];
+        const ta = $("word-input");
+        if (ta) ta.value = "";
+        renderWordChips();
+      }
+      showLessonSummary();
+    } else {
+      startRound();
+    }
+  }
+
+  function showLessonSummary() {
+    const results = state.lessonResults;
+    const total = results.length;
+    const wins = results.filter((r) => r.won).length;
+    if ($("summary-line")) {
+      $("summary-line").textContent =
+        total === 0
+          ? "No words practiced yet."
+          : `You practiced ${total} word${total === 1 ? "" : "s"} — spelled ${wins} correctly. Review them below!`;
+    }
+    const ratio = total ? wins / total : 0;
+    if ($("summary-stars")) {
+      $("summary-stars").textContent =
+        ratio >= 0.9 ? "★★★" : ratio >= 0.6 ? "★★☆" : ratio > 0 ? "★☆☆" : "···";
+    }
+
+    const list = $("summary-list");
+    if (list) {
+      list.innerHTML = results
+        .map(
+          (r, i) => `
+      <div class="summary-item">
+        <span class="sw">${r.word}</span>
+        <span class="${r.won ? "sok" : "smiss"}">${r.won ? "correct" : "learn"}</span>
+        <button type="button" data-hear="${i}" aria-label="Hear ${r.word}">Hear</button>
+      </div>`
+        )
+        .join("");
+      list.querySelectorAll("button[data-hear]").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          const r = results[+btn.dataset.hear];
+          if (r) {
+            speak(r.word, { interrupt: true });
+            speakLater(r.word.toLowerCase().split("").join(" "), 200);
+          }
+        });
+      });
+    }
+
+    const missed = results.filter((r) => !r.won);
+    const retryBtn = $("btn-summary-retry");
+    if (retryBtn) {
+      retryBtn.style.display = missed.length ? "" : "none";
+      retryBtn.onclick = () => {
+        state.lessonQueue = missed.map((r) => ({
+          word: r.word,
+          clue: r.clue,
+          emoji: r.emoji,
+          tier: state.difficulty,
+          theme: "custom",
+          custom: true,
+        }));
+        state.lessonIndex = 0;
+        state.lessonResults = [];
+        sfx("pop");
+        startRound();
+      };
+    }
+
+    showScreen("summary");
+    speak(
+      `Lesson complete, ${state.hero.name}! You spelled ${wins} out of ${total} words.`,
+      { interrupt: true }
+    );
+  }
+
+  // ---------- Confetti ----------
+  function fireConfetti() {
+    const c = $("confetti");
+    if (!c || !c.getContext) return;
+    const ctx2 = c.getContext("2d");
+    c.width = innerWidth;
+    c.height = innerHeight;
+    const bits = Array.from({ length: 80 }, () => ({
+      x: Math.random() * c.width,
+      y: -20 - Math.random() * 100,
+      r: 4 + Math.random() * 6,
+      vy: 2 + Math.random() * 4,
+      vx: -2 + Math.random() * 4,
+      color: ["#ff4fd8", "#3de7ff", "#ffd84d", "#7dff8a", "#ff6b6b", "#a78bfa"][
+        Math.floor(Math.random() * 6)
+      ],
+      a: Math.random() * Math.PI,
+    }));
+    let frames = 0;
+    function frame() {
+      frames++;
+      ctx2.clearRect(0, 0, c.width, c.height);
+      bits.forEach((b) => {
+        b.x += b.vx;
+        b.y += b.vy;
+        b.a += 0.1;
+        ctx2.save();
+        ctx2.translate(b.x, b.y);
+        ctx2.rotate(b.a);
+        ctx2.fillStyle = b.color;
+        ctx2.fillRect(-b.r, -b.r / 2, b.r * 2, b.r);
+        ctx2.restore();
+      });
+      if (frames < 90) requestAnimationFrame(frame);
+      else ctx2.clearRect(0, 0, c.width, c.height);
+    }
+    requestAnimationFrame(frame);
+  }
+
+  // ---------- Physical keyboard ----------
+  window.addEventListener("keydown", (e) => {
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    const game = $("screen-game");
+    if (!game || !game.classList.contains("active")) return;
+    const ch = e.key.toUpperCase();
+    if (/^[A-Z]$/.test(ch)) guess(ch);
+  });
+
+  // ---------- Home bindings ----------
+  function setupHome() {
+    document.querySelectorAll(".world-card").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        document.querySelectorAll(".world-card").forEach((b) => {
+          b.classList.remove("selected");
+          b.setAttribute("aria-checked", "false");
+        });
+        btn.classList.add("selected");
+        btn.setAttribute("aria-checked", "true");
+        state.world = btn.dataset.world;
+        sfx("pop");
+        if (state.world === "poke") {
+          const list = heroesForWorld("poke");
+          if (!list.some((h) => h.id === state.hero.id) || state.hero.role === "Buddy") {
+            if (state.hero.world !== "poke") setHeroById("trainer");
+          }
+        } else if (state.world === "demon" && state.hero.world !== "demon") {
+          setHeroById("rumi");
+        }
+        renderHeroPicker();
+        const worldName =
+          state.world === "poke"
+            ? "Poké Quest"
+            : state.world === "mix"
+              ? "Mix World"
+              : "Demon Hunters";
+        speak(`${worldName}. Your hero is ${state.hero.name}.`, { interrupt: true });
+      });
+    });
+
+    const range = $("diff");
+    const labels = document.querySelectorAll(".diff-labels span");
+    function setDiff(v) {
+      state.difficulty = +v;
+      if (range) range.value = v;
+      labels.forEach((l) => l.classList.toggle("on", +l.dataset.diff === +v));
+      if ($("diff-help")) $("diff-help").textContent = DIFF[v].help;
+    }
+    if (range) range.addEventListener("input", () => setDiff(range.value));
+    labels.forEach((l) => l.addEventListener("click", () => setDiff(l.dataset.diff)));
+
+    if ($("tog-sound")) {
+      $("tog-sound").addEventListener("click", function () {
+        state.sound = !state.sound;
+        this.classList.toggle("on", state.sound);
+        this.setAttribute("aria-pressed", state.sound);
+        this.textContent = state.sound ? "🔊 Sound On" : "🔇 Sound Off";
+        if (state.sound) sfx("pop");
+      });
+    }
+    if ($("tog-voice")) {
+      $("tog-voice").addEventListener("click", function () {
+        state.voice = !state.voice;
+        this.classList.toggle("on", state.voice);
+        this.setAttribute("aria-pressed", state.voice);
+        this.textContent = state.voice ? "🗣️ Voice On" : "🤐 Voice Off";
+        if (state.voice) speak("Voice on");
+      });
+    }
+
+    if ($("mode-custom")) {
+      $("mode-custom").addEventListener("click", () => {
+        setLessonMode("custom");
+        sfx("pop");
+      });
+    }
+    if ($("mode-theme")) {
+      $("mode-theme").addEventListener("click", () => {
+        setLessonMode("theme");
+        sfx("pop");
+      });
+    }
+    if ($("btn-parse-words")) {
+      $("btn-parse-words").addEventListener("click", () => {
+        const list = parseWordLines($("word-input").value);
+        applyParsedWords(list, true);
+      });
+    }
+    if ($("btn-sample-words")) {
+      $("btn-sample-words").addEventListener("click", () => {
+        $("word-input").value = SAMPLE_WORDS.join("\n");
+        applyParsedWords(parseWordLines(SAMPLE_WORDS.join("\n")), true);
+      });
+    }
+    if ($("btn-clear-words")) {
+      $("btn-clear-words").addEventListener("click", () => {
+        $("word-input").value = "";
+        applyParsedWords([], false);
+        sfx("pop");
+      });
+    }
+    if ($("word-input")) {
+      let t = null;
+      $("word-input").addEventListener("input", () => {
+        clearTimeout(t);
+        t = setTimeout(() => {
+          applyParsedWords(parseWordLines($("word-input").value), false);
+        }, 250);
+      });
+      if (state.customWords.length) {
+        $("word-input").value = wordsToTextarea(state.customWords);
+      }
+    }
+
+    if ($("btn-play")) {
+      $("btn-play").addEventListener("click", () => {
+        sfx("pop");
+        if (!beginLesson()) return;
+        startRound();
+      });
+    }
+
+    setLessonMode("custom");
+    renderWordChips();
+    renderHeroPicker();
+    renderShelf();
+  }
+
+  function setupGameControls() {
+    if ($("btn-home")) {
+      $("btn-home").addEventListener("click", () => {
+        state.lessonQueue = [];
+        showScreen("home");
+        renderShelf();
+        renderWordChips();
+      });
+    }
+    if ($("btn-result-home")) {
+      $("btn-result-home").addEventListener("click", () => {
+        state.lessonQueue = [];
+        showScreen("home");
+        renderShelf();
+        renderWordChips();
+      });
+    }
+    if ($("btn-again")) {
+      $("btn-again").addEventListener("click", () => {
+        if (state.lessonResults.length && state.lessonQueue.length) {
+          state.lessonResults.pop();
+        }
+        startRound();
+      });
+    }
+    if ($("btn-next")) {
+      $("btn-next").addEventListener("click", () => goNextLessonWord());
+    }
+    if ($("btn-hear-word")) {
+      $("btn-hear-word").addEventListener("click", () => {
+        if (!state.word) return;
+        speak(state.word.word);
+        const letters = state.word.word.replace(/[^A-Za-z]/g, "");
+        if (letters.length) {
+          setTimeout(() => speak(letters.toLowerCase().split("").join(" ")), 600);
+        }
+        sfx("pop");
+      });
+    }
+    if ($("btn-speak")) {
+      $("btn-speak").addEventListener("click", () => {
+        if (!state.word) return;
+        const d = DIFF[state.difficulty];
+        if (d.voiceHint || state.difficulty === 0) {
+          speak(state.word.clue);
+          setTimeout(() => speak(state.word.word.toLowerCase()), 800);
+        } else {
+          speak(state.word.clue);
+        }
+        sfx("pop");
+      });
+    }
+    if ($("btn-hint")) {
+      $("btn-hint").addEventListener("click", useHint);
+    }
+    if ($("btn-summary-home")) {
+      $("btn-summary-home").addEventListener("click", () => {
+        state.lessonQueue = [];
+        showScreen("home");
+        renderShelf();
+        renderWordChips();
+      });
+    }
+    if ($("btn-summary-again")) {
+      $("btn-summary-again").addEventListener("click", () => {
+        if (!beginLesson()) return;
+        sfx("pop");
+        startRound();
+      });
+    }
+  }
+
+  // ---------- Boot ----------
+  function boot() {
+    try {
+      spawnFX();
+      setupHome();
+      setupGameControls();
+      buildKeyboard();
+      showScreen("home");
+    } catch (err) {
+      console.error("Word Hunters failed to load", err);
+      alert("Could not load game: " + (err && err.message ? err.message : err));
+    }
+  }
+
+  if (document.readyState === "loading") {
+    document.addEventListener("DOMContentLoaded", boot);
+  } else {
+    boot();
+  }
+})();

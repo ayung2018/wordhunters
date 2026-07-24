@@ -1,0 +1,215 @@
+  color: var(--text);
+  cursor: pointer;
+  text-align: center;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+  min-height: 110px;
+  font-family: inherit;
+}
+.char-card:hover { transform: translateY(-2px); }
+.char-card.selected {
+  border-color: var(--cyan);
+  box-shadow: 0 0 0 3px rgba(61,231,255,.3), 0 8px 20px rgba(255,79,216,.25);
+  background: linear-gradient(160deg, rgba(61,231,255,.22), rgba(255,79,216,.15));
+}
+.char-card .face {
+  width: 72px; height: 72px; margin: 0 auto 6px;
+  border-radius: 50%;
+  background: linear-gradient(160deg, rgba(255,255,255,.12), rgba(0,0,0,.35));
+  border: 3px solid rgba(255,255,255,.35);
+  display: grid; place-items: center;
+  font-size: 1.8rem;
+  overflow: hidden;
+  position: relative;
+}
+.char-card .face img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 12%;
+  display: block;
+}
+.char-card .face .emoji-face {
+  font-size: 1.8rem;
+}
+.char-card .cname { font-weight: 900; font-size: .95rem; display: block; }
+.char-card .crole { font-size: .7rem; color: var(--muted); margin-top: 2px; display: block; }
+
+/* Stage / battle lane */
+.stage {
+  position: relative;
+  margin: 12px 0;
+  min-height: 260px;
+  border-radius: 24px;
+  overflow: hidden;
+  background:
+    radial-gradient(circle at 50% 120%, rgba(255,216,77,.25), transparent 50%),
+    linear-gradient(180deg, rgba(80,30,140,.55), rgba(15,10,40,.75));
+  border: 2px solid rgba(255,255,255,.15);
+  box-shadow: var(--shadow);
+  padding-bottom: 28px;
+}
+.stage.poke {
+  background:
+    radial-gradient(circle at 70% 20%, rgba(61,231,255,.25), transparent 45%),
+    linear-gradient(180deg, #1e3a8a 0%, #312e81 50%, #111827 100%);
+}
+.stage.demon {
+  background:
+    radial-gradient(circle at 30% 20%, rgba(255,79,216,.3), transparent 45%),
+    linear-gradient(180deg, #4c1d95 0%, #701a75 50%, #1f0a2e 100%);
+}
+.stage-floor {
+  position: absolute; left: 0; right: 0; bottom: 0; height: 28%;
+  background: linear-gradient(180deg, transparent, rgba(0,0,0,.35));
+  pointer-events: none;
+}
+
+/* Step dots along the path */
+.step-track {
+  position: absolute;
+  left: 12%;
+  right: 18%;
+  top: 52px;
+  height: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 4px;
+  z-index: 1;
+  pointer-events: none;
+}
+.step-track::before {
+  content: "";
+  position: absolute;
+  left: 0; right: 0; top: 50%;
+  height: 4px;
+  transform: translateY(-50%);
+  background: linear-gradient(90deg, rgba(255,107,107,.5), rgba(255,216,77,.4), rgba(125,255,138,.5));
+  border-radius: 999px;
+  z-index: 0;
+}
+.step-dot {
+  position: relative;
+  z-index: 1;
+  width: 18px; height: 18px;
+  border-radius: 50%;
+  background: rgba(0,0,0,.4);
+  border: 2px solid rgba(255,255,255,.45);
+  box-shadow: 0 2px 6px rgba(0,0,0,.3);
+  transition: background .25s, transform .25s, border-color .25s;
+}
+.step-dot.filled {
+  background: var(--coral);
+  border-color: #fff;
+  transform: scale(1.15);
+  box-shadow: 0 0 12px rgba(255,107,107,.7);
+}
+.step-dot.safe {
+  background: var(--lime);
+  border-color: #fff;
+}
+
+/* Battle lane: villain (left, moves) vs hero (right, fixed) */
+.battle-lane {
+  position: relative;
+  z-index: 2;
+  min-height: 190px;
+  margin-top: 36px;
+  padding: 0 8px 8px;
+}
+.actor {
+  position: absolute;
+  bottom: 18px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 120px;
+  transition: left .55s cubic-bezier(.2,.8,.2,1), transform .35s;
+}
+.villain-side {
+  left: var(--villain-x, 4%);
+  z-index: 3;
+}
+.hero-side {
+  right: 4%;
+  left: auto;
+  z-index: 2;
+}
+.actor-tag {
+  font-size: .65rem;
+  font-weight: 900;
+  letter-spacing: .08em;
+  padding: 3px 10px;
+  border-radius: 999px;
+  margin-bottom: 6px;
+  text-transform: uppercase;
+}
+.villain-tag {
+  background: rgba(255,107,107,.9);
+  color: #1a0505;
+}
+.hero-tag {
+  background: rgba(61,231,255,.95);
+  color: #04202a;
+}
+.actor-sprite {
+  width: 100px; height: 100px;
+  border-radius: 22px;
+  background: rgba(0,0,0,.28);
+  border: 3px solid rgba(255,255,255,.4);
+  display: grid; place-items: center;
+  box-shadow: 0 10px 28px rgba(0,0,0,.4);
+  overflow: hidden;
+  position: relative;
+  font-size: 2.8rem;
+}
+.actor-sprite.villain {
+  animation: villainWobble 1.6s ease-in-out infinite;
+  border-color: rgba(255,107,107,.65);
+}
+.actor-sprite.hero-avatar {
+  animation: heroBob 2.4s ease-in-out infinite;
+  border-color: rgba(61,231,255,.75);
+  background: linear-gradient(160deg, rgba(61,231,255,.2), rgba(167,139,250,.25));
+  border-radius: 50%;
+}
+.actor-sprite img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  object-position: center 10%;
+  filter: drop-shadow(0 4px 8px rgba(0,0,0,.4));
+  display: block;
+}
+.actor-sprite.villain img {
+  object-fit: contain;
+  object-position: center center;
+  animation: villainPulse 2s ease-in-out infinite;
+  background: rgba(0,0,0,.15);
+}
+.actor-sprite.hero-avatar img {
+  object-fit: cover;
+  object-position: center 8%;
+}
+.villain .emoji-face, .hero-avatar .emoji-face { font-size: 3.2rem; }
+.actor-name {
+  margin-top: 6px;
+  font-weight: 900;
+  font-size: .95rem;
+  text-shadow: 0 2px 6px #000;
+  max-width: 120px;
+  text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.vs-badge {
+  position: absolute;
+  left: 50%;
+  top: 40%;
+  transform: translate(-50%, -50%);
+  font-weight: 900;
+  font-size: 1.1rem;
+  color: var(--gold);
+  background: rgba(0,0,0,.4);
+  border: 2px solid rgba(255,216,77,.5);
+  border-radius: 50%;
+  width: 44px; height: 44px;

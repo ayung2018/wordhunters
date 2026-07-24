@@ -1,0 +1,46 @@
+  text-align: center; padding: 24px 16px;
+}
+.result-card h1 {
+  font-size: clamp(1.8rem, 6vw, 2.6rem); margin: 8px 0;
+  background: linear-gradient(90deg, var(--gold), var(--pink));
+  -webkit-background-clip: text; background-clip: text; color: transparent;
+}
+.result-word {
+  font-size: 2rem; font-weight: 900; letter-spacing: .15em;
+  color: var(--cyan); margin: 12px 0;
+}
+.result-pic {
+  width: 140px; height: 140px; margin: 0 auto 12px;
+  border-radius: 28px; background: rgba(0,0,0,.28);
+  display: grid; place-items: center; font-size: 4rem;
+  border: 3px solid rgba(255,255,255,.25); overflow: hidden;
+  animation: celebrate 1s ease-in-out infinite alternate;
+}
+.result-pic img { width: 100%; height: 100%; object-fit: contain; }
+@keyframes celebrate {
+  from { transform: scale(1) rotate(-2deg); }
+  to { transform: scale(1.06) rotate(2deg); }
+}
+.stars { font-size: 2rem; margin: 8px 0; letter-spacing: 4px; }
+.result-actions { display: flex; gap: 10px; justify-content: center; flex-wrap: wrap; margin-top: 16px; }
+.line { color: var(--muted); font-size: 1.05rem; font-weight: 600; }
+
+/* Confetti canvas */
+#confetti {
+  position: fixed; inset: 0; pointer-events: none; z-index: 50;
+}
+
+/* Footer note */
+.foot {
+  text-align: center; color: rgba(255,255,255,.4); font-size: .72rem;
+  margin-top: 18px; line-height: 1.4;
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: .01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: .01ms !important;
+  }
+}

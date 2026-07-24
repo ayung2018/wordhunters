@@ -1,0 +1,235 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover" />
+<meta name="theme-color" content="#1a0a3e" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<title>Word Hunters — Spelling Hangman</title>
+<link rel="stylesheet" href="styles-full.css" />
+</head>
+<body>
+
+<div class="fx-layer" id="fx" aria-hidden="true"></div>
+<canvas id="confetti"></canvas>
+
+<div class="app">
+  <!-- ========== HOME ========== -->
+  <section class="screen active" id="screen-home" aria-label="Home">
+    <div class="logo-wrap">
+      <div class="logo">Word Hunters</div>
+      <p class="tagline">Spell English words · level up · unlock heroes &amp; villains!</p>
+    </div>
+
+    <!-- Energy / level-up bar (always visible) -->
+    <div class="panel energy-panel" id="energy-panel">
+      <h2>Word Energy</h2>
+      <div class="level-meta">
+        <span id="energy-label">Level 1 energy</span>
+        <span id="energy-next">5 more words → Lv 2</span>
+      </div>
+      <div class="energy-track" aria-hidden="true">
+        <div class="energy-fill" id="energy-fill"></div>
+      </div>
+      <p class="level-hint" id="energy-hint">Spell new words to fill the energy bar and unlock stronger characters!</p>
+      <div class="level-meta subtle">
+        <span id="level-label">Level 1</span>
+        <span id="words-known-label">0 words known</span>
+      </div>
+      <div class="level-track hidden-track" aria-hidden="true"><div class="level-fill" id="level-fill"></div></div>
+      <p class="level-hint" id="level-hint" hidden></p>
+    </div>
+
+    <div class="panel">
+      <h2>Pick a World</h2>
+      <div class="worlds" role="radiogroup" aria-label="World">
+        <button type="button" class="world-card selected" data-world="demon" role="radio" aria-checked="true">
+          <span class="world-thumb world-thumb-demon">
+            <img src="images/rumi.png" alt="Demon Hunters" />
+          </span>
+          <span class="name">Demon Hunters</span>
+          <span class="desc">Stage songs · courage · Gwi-Ma</span>
+        </button>
+        <button type="button" class="world-card" data-world="poke" role="radio" aria-checked="false">
+          <span class="world-thumb world-thumb-poke">
+            <img src="images/pikachu.png" alt="Poké Quest" />
+          </span>
+          <span class="name">Poké Quest</span>
+          <span class="desc">Friendship · journey · Mewtwo</span>
+        </button>
+        <button type="button" class="world-card" data-world="mix" role="radio" aria-checked="false">
+          <span class="world-thumb world-thumb-mix">
+            <img class="mix-a" src="images/rumi.png" alt="" />
+            <img class="mix-b" src="images/mewtwo.png" alt="" />
+          </span>
+          <span class="name">Mix World</span>
+          <span class="desc">Both worlds together</span>
+        </button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Pick Your Character</h2>
+      <p class="line" style="margin:0 0 10px;font-size:.9rem">
+        Start with helpers &amp; pets. Level up to unlock stars like <strong>Rumi</strong>, then boss villains like <strong>Gwi-Ma</strong> and <strong>Mewtwo</strong>!
+      </p>
+      <div class="char-grid" id="hero-picker" role="radiogroup" aria-label="Choose your character"></div>
+    </div>
+
+    <div class="panel">
+      <h2>📝 Spelling Lesson</h2>
+      <p class="line" style="margin:0 0 10px;font-size:.9rem">
+        Add <strong>10–20 words</strong> your kids will spell. Hangman stays fun — heroes, villains, and levels stay the same!
+      </p>
+      <div class="toggles" style="margin-bottom:12px">
+        <button type="button" class="toggle on" id="mode-custom" aria-pressed="true">📚 My Word List</button>
+        <button type="button" class="toggle" id="mode-theme" aria-pressed="false">🎲 Theme Words</button>
+      </div>
+      <div id="custom-words-panel">
+        <label class="field-label" for="word-input">One word per line (optional clue after a dash)</label>
+        <textarea id="word-input" class="word-input" rows="8" spellcheck="true" placeholder="Example:&#10;CAT - a soft pet&#10;HAPPY&#10;FRIEND - someone you love&#10;SCHOOL&#10;RAINBOW"></textarea>
+        <div class="word-tools">
+          <button type="button" class="btn btn-secondary" id="btn-parse-words">✓ Load words</button>
+          <button type="button" class="btn btn-secondary" id="btn-sample-words">Random 15 words</button>
+          <button type="button" class="btn btn-secondary" id="btn-clear-words">🗑 Clear</button>
+        </div>
+        <p class="line" id="word-count" style="margin:10px 0 6px;font-size:.9rem">0 words ready (aim for 10–20)</p>
+        <div class="word-chips" id="word-chips"></div>
+      </div>
+      <p class="line" id="theme-mode-note" style="display:none;margin:0;font-size:.9rem">
+        Theme mode uses everyday English words from the story worlds (friendship, courage, journey…) — not character names.
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>🎚️ Difficulty</h2>
+      <div class="diff-row">
+        <div class="diff-labels">
+          <span data-diff="0" class="on">Easy</span>
+          <span data-diff="1">Medium</span>
+          <span data-diff="2">Hard</span>
+        </div>
+        <input type="range" id="diff" min="0" max="2" step="1" value="0" aria-label="Difficulty" />
+      </div>
+      <p class="line" id="diff-help" style="margin:10px 0 0;font-size:.9rem">
+        Easy: free first letter, voice says the clue, more hearts & hints
+      </p>
+    </div>
+
+    <div class="panel">
+      <h2>🔊 Sound & Voice</h2>
+      <div class="toggles">
+        <button type="button" class="toggle on" id="tog-sound" aria-pressed="true">🔊 Sound On</button>
+        <button type="button" class="toggle on" id="tog-voice" aria-pressed="true">🗣️ Voice On</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Words I Know</h2>
+      <p class="line" style="margin:0 0 8px;font-size:.9rem">
+        A simple list of every word you spelled correctly. Grow this list to level up!
+      </p>
+      <div class="shelf word-book" id="shelf"></div>
+    </div>
+
+    <button type="button" class="btn btn-primary" id="btn-play">▶ PLAY!</button>
+    <p class="foot">
+      Fan-inspired family game for learning English · Original UI art ·
+      Pokémon artwork © Nintendo/Creatures/Game Freak (sprites via PokéAPI, personal use)
+    </p>
+  </section>
+
+  <!-- ========== GAME ========== -->
+  <section class="screen" id="screen-game" aria-label="Game">
+    <div class="game-top">
+      <button type="button" class="btn btn-icon" id="btn-home" title="Home" aria-label="Home">🏠</button>
+      <div class="theme-banner" id="theme-banner">🎤 Demon Hunters</div>
+      <div class="lesson-progress" id="lesson-progress" hidden>1 / 10</div>
+      <div class="hearts" id="hearts" aria-label="Lives remaining"></div>
+    </div>
+
+    <div class="stage demon" id="stage">
+      <div class="meter-bar" aria-hidden="true"><div class="meter-fill" id="meter"></div></div>
+      <div class="step-track" id="step-track" aria-hidden="true"></div>
+
+      <!-- Battle lane: villain walks right → toward YOU on each wrong guess -->
+      <div class="battle-lane">
+        <div class="actor villain-side" id="villain-wrap">
+          <div class="actor-tag villain-tag">VILLAIN</div>
+          <div class="actor-sprite villain photo-loading" id="villain"></div>
+          <div class="actor-name" id="villain-name">Gwi-Ma</div>
+        </div>
+
+        <div class="vs-badge" id="vs-badge">VS</div>
+
+        <div class="actor hero-side" id="hero-wrap">
+          <div class="actor-tag hero-tag">YOU</div>
+          <div class="actor-sprite hero-avatar photo-loading" id="hero-sprite"></div>
+          <div class="actor-name" id="hero-name">Rumi</div>
+        </div>
+      </div>
+
+      <div class="pokeball" id="pokeball" hidden></div>
+      <div class="stage-floor"></div>
+      <div class="stage-caption" id="stage-caption">Wrong letter = villain takes one step closer!</div>
+    </div>
+
+    <div class="hint-card">
+      <div class="hint-pic photo-loading" id="hint-pic"></div>
+      <div class="hint-meta">
+        <div class="label">Picture hint</div>
+        <div class="clue" id="hint-clue">Guess the word!</div>
+      </div>
+      <div class="hint-actions">
+        <button type="button" class="btn btn-icon" id="btn-speak" title="Hear the word" aria-label="Hear word">🔈</button>
+        <button type="button" class="btn btn-icon" id="btn-hint" title="Hint" aria-label="Hint">💡</button>
+      </div>
+    </div>
+
+    <div class="word-row" id="word-row" aria-live="polite"></div>
+    <div class="keyboard" id="keyboard" role="group" aria-label="Letter keyboard"></div>
+  </section>
+
+  <!-- ========== RESULT (per word) ========== -->
+  <section class="screen" id="screen-result" aria-label="Result">
+    <div class="panel result-card">
+      <div class="result-pic" id="result-pic">🎉</div>
+      <h1 id="result-title">You did it!</h1>
+      <div class="stars" id="result-stars">⭐⭐⭐</div>
+      <p class="line" id="result-line">Great spelling!</p>
+      <div class="result-word" id="result-word">WORD</div>
+      <p class="line" id="result-spell-practice" style="margin-top:4px">Let’s learn it:</p>
+      <div class="spell-out" id="spell-out"></div>
+      <button type="button" class="btn btn-secondary" id="btn-hear-word" style="margin-top:8px">🔈 Hear the word</button>
+      <div class="result-actions">
+        <button type="button" class="btn btn-secondary" id="btn-again">🔄 Try Again</button>
+        <button type="button" class="btn btn-primary" id="btn-next" style="width:auto;margin:0;padding:16px 32px">Next word ▶</button>
+      </div>
+      <button type="button" class="btn btn-secondary" id="btn-result-home" style="margin-top:12px">🏠 Home</button>
+    </div>
+  </section>
+
+  <!-- ========== LESSON SUMMARY ========== -->
+  <section class="screen" id="screen-summary" aria-label="Lesson complete">
+    <div class="panel result-card">
+      <div class="result-pic" style="font-size:3.5rem">📖✨</div>
+      <h1>Lesson complete!</h1>
+      <p class="line" id="summary-line">You practiced 10 words. Let’s review the spellings.</p>
+      <div class="stars" id="summary-stars">⭐⭐⭐</div>
+      <div class="summary-list" id="summary-list"></div>
+      <div class="result-actions" style="margin-top:16px">
+        <button type="button" class="btn btn-secondary" id="btn-summary-retry">🔄 Practice missed</button>
+        <button type="button" class="btn btn-primary" id="btn-summary-again" style="width:auto;margin:0;padding:16px 28px">Play list again ▶</button>
+      </div>
+      <button type="button" class="btn btn-secondary" id="btn-summary-home" style="margin-top:12px">🏠 Home</button>
+    </div>
+  </section>
+</div>
+
+
+<script src="images-embed-1.js"></script>
+<script src="images-embed-2.js"></script>
+<script src="words-bank.js"></script>
+<script src="game.js"></script>
+</body>
+</html>

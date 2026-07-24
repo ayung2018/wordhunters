@@ -1,0 +1,180 @@
+  display: grid; place-items: center;
+  z-index: 1;
+  opacity: .85;
+  pointer-events: none;
+  transition: opacity .3s;
+}
+.stage.danger-close .vs-badge {
+  opacity: .35;
+}
+@keyframes heroBob {
+  0%,100% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+}
+@keyframes villainWobble {
+  0%,100% { transform: rotate(-3deg) scale(1); }
+  50% { transform: rotate(3deg) scale(1.04); }
+}
+@keyframes villainPulse {
+  0%,100% { transform: scale(1); }
+  50% { transform: scale(1.06); }
+}
+.actor-sprite.villain.danger {
+  animation: villainShake .4s ease-in-out, villainWobble 1.2s ease-in-out infinite;
+  border-color: var(--coral);
+  box-shadow: 0 0 28px rgba(255,107,107,.65);
+}
+.hero-side.scared .actor-sprite {
+  animation: heroShake .45s ease-in-out;
+}
+@keyframes villainShake {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-6px); }
+  75% { transform: translateX(6px); }
+}
+@keyframes heroShake {
+  0%,100% { transform: translateX(0); }
+  30% { transform: translateX(-4px) rotate(-4deg); }
+  60% { transform: translateX(4px) rotate(4deg); }
+}
+.pokeball {
+  position: absolute; right: 8%; bottom: 12%; width: 48px; height: 48px;
+  border-radius: 50%; z-index: 1; opacity: .7;
+  background: linear-gradient(180deg, #ef4444 50%, #fff 50%);
+  border: 3px solid #1f2937;
+  box-shadow: 0 6px 14px rgba(0,0,0,.35);
+  animation: ballSpin 4s linear infinite;
+  pointer-events: none;
+}
+.pokeball::after {
+  content: ""; position: absolute; left: 50%; top: 50%;
+  width: 12px; height: 12px; margin: -6px 0 0 -6px;
+  background: #fff; border: 2px solid #1f2937; border-radius: 50%;
+}
+@keyframes ballSpin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+.meter-bar {
+  position: absolute; left: 12px; right: 12px; top: 12px; height: 14px;
+  background: rgba(0,0,0,.4); border-radius: 999px; overflow: hidden;
+  border: 1px solid rgba(255,255,255,.2);
+  z-index: 4;
+}
+.meter-fill {
+  height: 100%; width: 100%;
+  background: linear-gradient(90deg, var(--lime), var(--gold), var(--coral));
+  transition: width .4s ease;
+  border-radius: 999px;
+}
+.stage-caption {
+  position: absolute; left: 0; right: 0; bottom: 6px;
+  text-align: center; font-size: .8rem; font-weight: 700;
+  color: rgba(255,255,255,.9); text-shadow: 0 1px 4px #000;
+  padding: 0 10px;
+  z-index: 4;
+}
+@media (max-width: 420px) {
+  .actor { width: 96px; }
+  .actor-sprite { width: 82px; height: 82px; font-size: 2.2rem; }
+  .vs-badge { width: 36px; height: 36px; font-size: .9rem; }
+}
+
+/* Word hint card */
+.hint-card {
+  display: flex; align-items: center; gap: 14px;
+  background: rgba(255,255,255,.1);
+  border-radius: 20px; padding: 12px 14px;
+  border: 1px solid rgba(255,255,255,.15);
+  margin: 10px 0;
+}
+.hint-pic {
+  width: 72px; height: 72px; border-radius: 18px;
+  background: rgba(0,0,0,.25); display: grid; place-items: center;
+  font-size: 2.4rem; overflow: hidden; flex-shrink: 0;
+  border: 2px solid rgba(255,255,255,.2);
+}
+.hint-pic img { width: 100%; height: 100%; object-fit: contain; }
+.hint-meta { flex: 1; min-width: 0; }
+.hint-meta .label { font-size: .75rem; color: var(--muted); text-transform: uppercase; font-weight: 800; }
+.hint-meta .clue { font-size: 1.05rem; font-weight: 700; margin-top: 2px; }
+.hint-actions { display: flex; gap: 6px; }
+
+/* Letter tiles */
+.word-row {
+  display: flex; flex-wrap: wrap; justify-content: center; gap: 8px;
+  margin: 16px 0 12px; min-height: 64px;
+}
+.tile {
+  width: 48px; height: 58px;
+  border-radius: 12px;
+  background: linear-gradient(180deg, #4c1d95, #2e1065);
+  border: 2px solid rgba(255,255,255,.25);
+  display: grid; place-items: center;
+  font-size: 1.6rem; font-weight: 900;
+  box-shadow: 0 6px 0 rgba(0,0,0,.25);
+  color: transparent;
+  transition: transform .2s, background .2s, color .2s;
+}
+.tile.space { width: 24px; background: transparent; border: none; box-shadow: none; }
+.tile.revealed {
+  color: #fff;
+  background: linear-gradient(180deg, #22c55e, #15803d);
+  border-color: #86efac;
+  animation: tilePop .4s cubic-bezier(.2,1.4,.4,1);
+}
+@keyframes tilePop {
+  0% { transform: scale(.4) rotate(-10deg); }
+  70% { transform: scale(1.12) rotate(3deg); }
+  100% { transform: scale(1) rotate(0); }
+}
+.tile.miss { animation: tileMiss .35s ease; border-color: var(--coral); }
+@keyframes tileMiss {
+  0%,100% { transform: translateX(0); }
+  25% { transform: translateX(-4px); }
+  75% { transform: translateX(4px); }
+}
+
+/* Keyboard */
+.keyboard {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 7px;
+  margin-top: 8px;
+}
+@media (min-width: 600px) {
+  .keyboard { grid-template-columns: repeat(9, 1fr); gap: 8px; }
+}
+.key {
+  min-height: 48px;
+  border-radius: 12px;
+  border: none;
+  background: rgba(255,255,255,.16);
+  color: #fff;
+  font-family: inherit;
+  font-weight: 900;
+  font-size: 1.15rem;
+  cursor: pointer;
+  box-shadow: 0 4px 0 rgba(0,0,0,.25);
+  transition: transform .1s, background .15s, opacity .15s;
+}
+.key:active:not(:disabled) { transform: translateY(2px); box-shadow: 0 2px 0 rgba(0,0,0,.25); }
+.key.correct {
+  background: linear-gradient(180deg, #4ade80, #16a34a);
+  box-shadow: 0 0 16px rgba(74,222,128,.55);
+  color: #052e16;
+}
+.key.wrong {
+  background: rgba(0,0,0,.35);
+  opacity: .4;
+  animation: keyShake .35s ease;
+}
+@keyframes keyShake {
+  0%,100% { transform: translateX(0); }
+  30% { transform: translateX(-5px); }
+  60% { transform: translateX(5px); }
+}
+.key:disabled { cursor: default; }
+
+/* Result screens */
+.result-card {
