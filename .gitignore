@@ -1,0 +1,11 @@
+.DS_Store
+*.swp
+.idea/
+.vscode/
+*.bak
+.env
+.env.*
+!.env.example
+node_modules/
+.vercel/
+dist/
