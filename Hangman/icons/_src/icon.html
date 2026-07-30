@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<style>
+  html,body{margin:0;padding:0;background:#000;overflow:hidden;}
+  #stage{width:1024px;height:1024px;}
+</style>
+</head>
+<body>
+<div id="stage">
+<svg id="icon" width="1024" height="1024" viewBox="0 0 1024 1024" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <!-- Background radial -->
+    <radialGradient id="bg" cx="50%" cy="42%" r="72%">
+      <stop offset="0%"  stop-color="#4a1f8f"/>
+      <stop offset="45%" stop-color="#2c1063"/>
+      <stop offset="100%" stop-color="#100530"/>
+    </radialGradient>
+
+    <!-- Badge top (Poke nod: magenta dome) -->
+    <linearGradient id="domeTop" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#ff58c6"/>
+      <stop offset="100%" stop-color="#e01e8a"/>
+    </linearGradient>
+    <!-- Badge bottom (indigo dome) -->
+    <linearGradient id="domeBot" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#2a1566"/>
+      <stop offset="100%" stop-color="#170a3c"/>
+    </linearGradient>
+
+    <!-- W stroke gradient -->
+    <linearGradient id="wGrad" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%"   stop-color="#00eaff"/>
+      <stop offset="45%"  stop-color="#7be0ff"/>
+      <stop offset="55%"  stop-color="#ffd45e"/>
+      <stop offset="100%" stop-color="#ffb020"/>
+    </linearGradient>
+
+    <linearGradient id="ringGold" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%"  stop-color="#ffe89a"/>
+      <stop offset="50%" stop-color="#ffbe3d"/>
+      <stop offset="100%" stop-color="#c9821a"/>
+    </linearGradient>
+
+    <radialGradient id="gloss" cx="50%" cy="28%" r="55%">
+      <stop offset="0%"  stop-color="#ffffff" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
+
+    <filter id="softGlow" x="-60%" y="-60%" width="220%" height="220%">
+      <feGaussianBlur stdDeviation="14" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="wGlow" x="-80%" y="-80%" width="260%" height="260%">
+      <feGaussianBlur stdDeviation="22" result="b"/>
+      <feMerge><feMergeNode in="b"/><feMergeNode in="b"/><feMergeNode in="SourceGraphic"/></feMerge>
+    </filter>
+    <filter id="rayBlur" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="5"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect width="1024" height="1024" fill="url(#bg)"/>
+
+  <!-- Radiant concert rays behind badge -->
+  <g filter="url(#rayBlur)" opacity="0.55">
+    <g id="rays" transform="translate(512,500)">
+      <!-- generated rays -->
+    </g>
+  </g>
+
+  <!-- Sparkle stars (K-pop stage sparkle) -->
+  <g id="sparkles" fill="#fff"></g>
+
+  <!-- Collectible badge (Poke-ball split disc) -->
+  <g transform="translate(512,512)">
+    <!-- outer gold ring glow -->
+    <circle r="330" fill="none" stroke="url(#ringGold)" stroke-width="26" filter="url(#softGlow)"/>
+    <!-- disc -->
+    <clipPath id="disc"><circle r="316"/></clipPath>
+    <g clip-path="url(#disc)">
+      <rect x="-320" y="-320" width="640" height="330" fill="url(#domeTop)"/>
+      <rect x="-320" y="10"  width="640" height="330" fill="url(#domeBot)"/>
+      <!-- center cyan energy band -->
+      <rect x="-320" y="-34" width="640" height="68" fill="#0b0524"/>
+      <rect x="-320" y="-34" width="640" height="10" fill="#00eaff" opacity="0.85"/>
+      <rect x="-320" y="24"  width="640" height="10" fill="#00eaff" opacity="0.85"/>
+      <!-- gloss -->
+      <ellipse cx="0" cy="-150" rx="300" ry="210" fill="url(#gloss)"/>
+    </g>
+    <circle r="316" fill="none" stroke="#0b0524" stroke-width="14" opacity="0.6"/>
+
+    <!-- The W hero mark -->
+    <g filter="url(#wGlow)">
+      <path d="M -196 -150 L -120 168 L -44 -40 L 40 168 L 116 -150"
+            fill="none" stroke="url(#wGrad)" stroke-width="60"
+            stroke-linecap="round" stroke-linejoin="round"/>
+    </g>
+    <path d="M -196 -150 L -120 168 L -44 -40 L 40 168 L 116 -150"
+          fill="none" stroke="#ffffff" stroke-width="16"
+          stroke-linecap="round" stroke-linejoin="round" opacity="0.9"/>
+    <!-- collectible spark on W peak -->
+    <g transform="translate(150,-150)">
+      <path d="M0,-34 L9,-9 L34,0 L9,9 L0,34 L-9,9 L-34,0 L-9,-9 Z" fill="#fff"/>
+      <path d="M0,-22 L6,-6 L22,0 L6,6 L0,22 L-6,6 L-22,0 L-6,-6 Z" fill="#00eaff"/>
+    </g>
+  </g>
+</svg>
+</div>
+<script>
+  const svgns = "http://www.w3.org/2000/svg";
+  // Rays
+  const rays = document.getElementById('rays');
+  const N = 24;
+  for(let i=0;i<N;i++){
+    const a = (i/N)*Math.PI*2;
+    const len = 620, w = 26;
+    const x1 = Math.cos(a-0.02)*90, y1 = Math.sin(a-0.02)*90;
+    const x2 = Math.cos(a+0.02)*90, y2 = Math.sin(a+0.02)*90;
+    const xt = Math.cos(a)*len, yt = Math.sin(a)*len;
+    const p = document.createElementNS(svgns,'path');
+    p.setAttribute('d',`M${x1},${y1} L${x2},${y2} L${xt},${yt} Z`);
+    p.setAttribute('fill', i%2? '#ffcf4d' : '#ff5ec7');
+    p.setAttribute('opacity', i%2? '0.9':'0.7');
+    rays.appendChild(p);
+  }
+  // Sparkles
+  const sp = document.getElementById('sparkles');
+  const stars = [[150,120,20,'#fff'],[880,180,26,'#ffd45e'],[120,760,24,'#00eaff'],
+                 [900,820,20,'#fff'],[812,470,16,'#ffd45e'],[210,430,15,'#fff'],
+                 [640,90,14,'#00eaff'],[400,930,18,'#ff7ad9']];
+  for(const [x,y,r,c] of stars){
+    const g = document.createElementNS(svgns,'g');
+    g.setAttribute('transform',`translate(${x},${y})`);
+    const p = document.createElementNS(svgns,'path');
+    p.setAttribute('d',`M0,${-r} L${r*0.28},${-r*0.28} L${r},0 L${r*0.28},${r*0.28} L0,${r} L${-r*0.28},${r*0.28} L${-r},0 L${-r*0.28},${-r*0.28} Z`);
+    p.setAttribute('fill', c);
+    p.setAttribute('opacity','0.9');
+    g.appendChild(p);
+    sp.appendChild(g);
+  }
+</script>
+</body>
+</html>
