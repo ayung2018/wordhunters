@@ -1240,16 +1240,22 @@
   function renderKeyboard() {
     const kb = $("keyboard");
     if (!kb) return;
-    const letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".split("");
-    kb.innerHTML = letters
-      .map((L) => {
-        let cls = "key";
-        if (state.guessed && state.guessed.has(L)) {
-          cls += lettersOf(state.word?.word || "").includes(L) ? " correct" : " wrong";
-        }
-        const disabled = state.guessed && state.guessed.has(L) ? "disabled" : "";
-        return `<button type="button" class="${cls}" data-letter="${L}" ${disabled}>${L}</button>`;
-      })
+    const rows = ["QWERTYUIOP", "ASDFGHJKL", "ZXCVBNM"];
+    kb.innerHTML = rows
+      .map(
+        (row) =>
+          `<div class="keyboard-row">${row
+            .split("")
+            .map((L) => {
+              let cls = "key";
+              if (state.guessed && state.guessed.has(L)) {
+                cls += lettersOf(state.word?.word || "").includes(L) ? " correct" : " wrong";
+              }
+              const disabled = state.guessed && state.guessed.has(L) ? "disabled" : "";
+              return `<button type="button" class="${cls}" data-letter="${L}" ${disabled}>${L}</button>`;
+            })
+            .join("")}</div>`,
+      )
       .join("");
     kb.querySelectorAll(".key").forEach((btn) => {
       btn.addEventListener("click", () => guess(btn.dataset.letter));
